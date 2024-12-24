@@ -15,7 +15,6 @@ public class CacheService : ICacheService
 
         var redis = ConnectionMultiplexer.Connect(connectionStrings.RedisConnection);
         _cacheDb = redis.GetDatabase();
-        Console.WriteLine("Connected to the redis server");
 
     }
     public async Task<T> GetData<T>(string key)
@@ -27,8 +26,9 @@ public class CacheService : ICacheService
         return default;
     }
 
-    public async Task<bool> SetData<T>(string key, T data) {
-        return await _cacheDb.StringSetAsync(key, JsonSerializer.Serialize<T>(data));
+    public async Task<bool> SetData<T>(string key, T data, DateTimeOffset expirationTime) {
+        var expirayTime = expirationTime.DateTime.Subtract(DateTime.Now);
+        return await _cacheDb.StringSetAsync(key, JsonSerializer.Serialize<T>(data), expirayTime);
     }
 
     public async Task<bool> RemoveKey(string key)

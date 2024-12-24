@@ -26,7 +26,39 @@ public class DriverController : ControllerBase
         if (result is not null && result.Count() > 0)
             return Ok(result);
         var drivers = await _context.Drivers.ToListAsync();
-        await _service.SetData<IEnumerable<Driver>>("drivers", drivers);
+        var expirayTime = DateTimeOffset.Now.AddSeconds(30);
+        await _service.SetData<IEnumerable<Driver>>("drivers", drivers, expirayTime);
         return Ok(drivers);
+    }
+    [HttpGet("driver/{id}")]
+    public async Task<IActionResult> GetDriver(int id) {
+        var result = await _service.GetData<Driver>($"driver-{id}");
+        if (result is not null )
+            return Ok(result);
+        var driver = await _context.Drivers.SingleOrDefaultAsync(d=>d.Id == id);
+        var expirayTime = DateTimeOffset.Now.AddSeconds(120);
+        await _service.SetData<Driver>($"driver-{id}", driver, expirayTime);
+        return Ok(driver);
+    }
+
+    [HttpPost("add")]
+    public async Task<IActionResult> AddDriver(Driver driver) {
+
+
+        var addedObj = await _context.Drivers.AddAsync(driver);
+        var expirayTime = DateTimeOffset.Now.AddSeconds(30);
+        await _service.SetData<Driver>($"driver-{driver.Id}", addedObj.Entity, expirayTime);
+        await _context.SaveChangesAsync();
+        return Ok(addedObj.Entity);
+    }
+    [HttpDelete("delete/{id}")]
+    public async Task<IActionResult> DeleteDriverFromCache(int id) {
+        var result = await _service.GetData<Driver>($"driver-{id}");
+        if (result is not null) {
+            await _service.RemoveKey($"driver-{id}");
+            
+            return NoContent();
+        }
+        return NotFound();
     }
 }
